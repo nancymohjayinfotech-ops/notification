@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="fluttertest">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>fluttertest</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="google-signin-client_id" content="139812309215-oaeaeb4bb51n4223gomf9mfj13mss99v.apps.googleusercontent.com">
+    <!-- Firebase scripts -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js"></script>
+
+
+
+  <script>
+
+    // Your Firebase config
+
+    const firebaseConfig = {
+
+    apiKey: "AIzaSyCMM9sLCT8IxhA8cuucp2P0Ou2KrCSAgag",
+
+    authDomain: "testnotification-1ef05.firebaseapp.com",
+
+    projectId: "testnotification-1ef05",
+
+    storageBucket: "testnotification-1ef05.appspot.com",
+
+    messagingSenderId: "746508962866",
+
+    appId: "1:746508962866:web:f900d17aa110435ea7802b",
+
+    measurementId: "G-NB635SFCHC"
+
+    };
+
+
+
+    // Initialize Firebase
+
+    firebase.initializeApp(firebaseConfig);
+
+
+
+    // Initialize messaging
+
+    const messaging = firebase.messaging();
+
+
+
+    // Request permission and get token
+
+    messaging.requestPermission()
+
+      .then(() => messaging.getToken({ vapidKey: "YOUR_VAPID_KEY" }))
+
+      .then((token) => {
+
+        console.log("FCM Token:", token);
+
+        // Optionally send this token to your backend
+
+      })
+
+      .catch((err) => {
+
+        console.error("Error getting FCM token:", err);
+
+      });
+
+
+
+    // Handle foreground messages
+
+    messaging.onMessage((payload) => {
+
+      console.log("Foreground message received:", payload);
+
+    });
+
+
+
+    // Register service worker
+
+    if ('serviceWorker' in navigator) {
+
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+
+        .then((registration) => {
+
+          console.log("Service Worker registered:", registration);
+
+          messaging.useServiceWorker(registration);
+
+        })
+
+        .catch((err) => {
+
+          console.error("Service Worker registration failed:", err);
+
+        });
+
+    }
+
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
