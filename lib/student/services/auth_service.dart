@@ -309,7 +309,7 @@ String _getFirebaseAuthErrorMessage(FirebaseAuthException e) {
   ) async {
     try {
       final url = Uri.parse(
-        'https://lms-latest-dsrn.onrender.com/api/auth/google-login',
+        'http://54.82.53.11:5001/api/auth/google-login',
       );
 
       print('📤 Sending backend verification request:');

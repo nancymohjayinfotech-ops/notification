@@ -18,7 +18,7 @@ Future<void> setupFCM(String role) async {
     final accessToken = prefs.getString('access_token') ?? '';
 
     final url = Uri.parse(
-      'https://lms-latest-dsrn.onrender.com/api/device-tokens/register'
+      'http://54.82.53.11:5001/api/device-tokens/register'
     );
     final body = {
       "role": role,

@@ -22,7 +22,7 @@ import 'package:fluttertest/student/screens/categories/TesterPage.dart';
 import 'package:fluttertest/student/screens/auth/PhoneLoginPage.dart';
 import 'package:fluttertest/event/main_event.dart' as event_app;
 import 'package:fluttertest/instructor/pages/instructor_dashboard.dart';
-import 'package:fluttertest/instructor/services/auth_service.dart';
+import 'package:fluttertest/instructor/services/auth_service.dart' as instructor_auth;
 import 'package:fluttertest/student/providers/theme_provider.dart';
 import 'package:fluttertest/student/providers/app_state_provider.dart';
 import 'package:fluttertest/student/providers/navigation_provider.dart';
@@ -38,113 +38,73 @@ import 'package:fluttertest/instructor/pages/instructor_login_page.dart';
 import 'package:fluttertest/instructor/pages/instructor_schedule_page.dart';
 import 'package:fluttertest/instructor/pages/student_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fluttertest/student/screens/courses/AllCoursesPage.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:fluttertest/event/main_event.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:fluttertest/student/screens/event/event_details_page.dart';
-
 import 'package:uuid/uuid.dart';
 
-// Routes
-
 // Event
-
 import 'package:fluttertest/event/main_event.dart' as eventApp;
 import '../../event/routes/app_router.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-
-
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-
-  await Firebase.initializeApp(); // Initialize Firebase in background
-
+  await Firebase.initializeApp();
   print('🔔 Background message received: ${message.messageId}');
-
   print('Data: ${message.data}');
-
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // if (kIsWeb || !Platform.isIOS && !Platform.isAndroid) {
-  //   await Firebase.initializeApp(
-  //     options: const FirebaseOptions(
-  //       apiKey: "AIzaSyCMM9sLCT8IxhA8cuucp2P0Ou2KrCSAgag",
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyCMM9sLCT8IxhA8cuucp2P0Ou2KrCSAgag",
+        authDomain: "testnotification-1ef05.firebaseapp.com",
+        projectId: "testnotification-1ef05",
+        storageBucket: "testnotification-1ef05.appspot.com",
+        messagingSenderId: "746508962866",
+        appId: "1:746508962866:web:f900d17aa110435ea7802b",
+        measurementId: "G-NB635SFCHC",
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
 
-  //       authDomain: "testnotification-1ef05.firebaseapp.com",
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  //       projectId: "testnotification-1ef05",
-
-  //       storageBucket: "testnotification-1ef05.appspot.com",
-
-  //       messagingSenderId: "746508962866",
-
-  //       appId: "1:746508962866:web:f900d17aa110435ea7802b",
-
-  //       measurementId: "G-NB635SFCHC",
-  //     ),
-  //   );
-  // } else {
-  //   await Firebase.initializeApp();
-  // }
-   await Firebase.initializeApp();
-     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   final prefs = await SharedPreferences.getInstance();
   final roleString = prefs.getString('user_role');
 
   if (roleString == UserRole.eventOrganizer.value) {
-    runApp(eventApp.MyApp(sharedPreferences: prefs)); // ✅ Event Organizer app
+    runApp(eventApp.MyApp(sharedPreferences: prefs));
   } else {
     print('🔄 Launching main app for role: $roleString');
     await runMainApp();
   }
 }
 
-// String getPlatform() {
-//   if (kIsWeb) return "web";
-//   try {
-//     if (Platform.isAndroid) return "android";
-
-//     if (Platform.isIOS) return "ios";
-//   } catch (e) {
-//     return "unknown";
-//   }
-
-//   return "unknown";
-// }
 String getPlatform() => "android";
 
 Future<void> setupFCM(String roleString) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-  // Request notification permissions
   await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-  // Get device token
   String? token = await messaging.getToken();
   print("📱 FCM Token: $token");
 
-  // Send token to backend
   if (token != null) {
     final prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString('access_token') ?? '';
 
-    
-    final url = Uri.parse('https://lms-latest-dsrn.onrender.com/api/device-tokens/register');
-
+    final url = Uri.parse('http://54.82.53.11:5001/api/device-tokens/register');
     final deviceId = Uuid().v4();
-    prefs.setString('device_id', deviceId); 
+    prefs.setString('device_id', deviceId);
     final body = {
       "token": token,
       "platform": "android",
@@ -172,9 +132,11 @@ Future<void> setupFCM(String roleString) async {
     }
   }
 
-  // Subscribe to topics for group notifications
-  await messaging.subscribeToTopic(roleString); // e.g., "student" or "instructor"
-  await messaging.subscribeToTopic('all_users'); // optional general topic
+  // Subscribe to topics for group notifications (NOT SUPPORTED ON WEB)
+  if (!kIsWeb) {
+    await messaging.subscribeToTopic(roleString);
+    await messaging.subscribeToTopic('all_users');
+  }
 
   // Foreground messages
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -187,7 +149,6 @@ Future<void> setupFCM(String roleString) async {
       );
     }
 
-    // Navigate if eventId exists
     final data = message.data;
     if (data['type'] == 'event' && data['eventId'] != null) {
       navigatorKey.currentState!.push(
@@ -220,19 +181,11 @@ Future<void> setupFCM(String roleString) async {
   }
 }
 
-// Initialize AuthService
 Future<void> runMainApp() async {
-  // final authService = AuthService();
-  // print('🔄 Initializing AuthService...');
-  // await authService.initialize();
-  // await setupFCM(authService);
-  
   final prefs = await SharedPreferences.getInstance();
-
   final roleString = prefs.getString('user_role') ?? 'student';
 
   await setupFCM(roleString);
-  // Main app for Students and Instructors
 
   runApp(
     MultiProvider(
@@ -242,15 +195,16 @@ Future<void> runMainApp() async {
         ChangeNotifierProvider(create: (context) => AppStateProvider()),
         ChangeNotifierProvider(create: (context) => NavigationProvider()),
         ChangeNotifierProvider(create: (context) => ChatProvider()),
-        // ChangeNotifierProvider(create: (context) => NotificationProvider()),
         ChangeNotifierProvider(create: (context) => FavoritesService()),
         ChangeNotifierProvider(create: (context) => OffersService()),
-        // ChangeNotifierProvider.value(value: authService),
         ChangeNotifierProvider(create: (context) => CartApiService()),
 
         // Repository Providers
         Provider<CourseRepository>(create: (context) => CourseRepositoryImpl()),
         Provider<UserRepository>(create: (context) => UserRepositoryImpl()),
+
+        // FIX: Use ChangeNotifierProvider for AuthService
+        ChangeNotifierProvider(create: (context) => AuthService()),
       ],
       child: const ScreenPage(),
     ),
@@ -270,18 +224,16 @@ class ScreenPage extends StatelessWidget {
           darkTheme: themeProvider.darkTheme,
           themeMode: themeProvider.themeMode,
           home: const SplashScreen(),
-
+          navigatorKey: navigatorKey,
           routes: {
-            '/loginpage': (context) => LoginPageScreen(), //create me
-            '/phonesignup': (context) => PhonePageScreeen(), //create me
+            '/loginpage': (context) => LoginPageScreen(),
+            '/phonesignup': (context) => PhonePageScreeen(),
             '/formcommon': (context) =>
-                FormCommonPageScreen(userRole: 'instructor'), //create me
+                FormCommonPageScreen(userRole: 'instructor'),
             '/phonelogin': (context) => PhoneLoginPage(),
-
-            //create me
             '/userprofileform': (context) => UserProfileForm(),
             '/signuppage': (context) => Signuppage(
-              initialRole: UserRole.everyone, // <-- Provide required argument
+              initialRole: UserRole.everyone,
               isSignUp: true,
             ),
             '/interestpage': (context) => InterestBasedPage(),
@@ -343,7 +295,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
       if (userRole == 'instructor') {
         // Check if instructor is logged in
-        final isInstructorLoggedIn = await InstructorAuthService.isLoggedIn();
+        final isInstructorLoggedIn = await instructor_auth.InstructorAuthService.isLoggedIn();
 
         if (isInstructorLoggedIn) {
           final instructorName =
@@ -394,7 +346,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           print('🔄 Student session found');
 
           setState(() {
-            _homeWidget = Dashboard(); // Student dashboard
+            _homeWidget = Dashboard();
             _isLoading = false;
           });
           return;
@@ -409,7 +361,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       });
     } catch (e) {
       print('Error checking auth state: $e');
-      // Default to login page on error
       setState(() {
         _homeWidget = const LoginPageScreen();
         _isLoading = false;
